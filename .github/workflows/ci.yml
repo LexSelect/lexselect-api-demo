@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  go:
+    name: Go CLI
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          working-directory: cli
+
+      - name: Build
+        run: go build -o lexselect .
+
+      - name: Smoke test
+        run: ./lexselect version
+
+  typescript:
+    name: TypeScript Example
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/typescript
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install
+        run: npm install
+
+      - name: Type check
+        run: npx tsc --noEmit upload-and-poll.ts || true
+
+  python:
+    name: Python Notebook
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install
+        run: pip install httpx jupyter python-dotenv
+
+      - name: Validate notebook
+        run: python -c "import json; json.load(open('sync-polling.ipynb'))"

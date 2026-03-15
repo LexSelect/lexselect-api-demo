@@ -1,0 +1,11 @@
+{
+  "name": "lexselect-api-typescript-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "upload": "tsx upload-and-poll.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}
