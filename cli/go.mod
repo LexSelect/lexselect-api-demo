@@ -1,6 +1,6 @@
 module github.com/LexSelect/lexselect-api-demo/cli
 
-go 1.25.4
+go 1.24
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
