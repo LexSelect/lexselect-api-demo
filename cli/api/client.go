@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -97,6 +98,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 	req.Header.Set("Authorization", "Bearer "+c.cfg.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-API-Version", c.cfg.APIVersion)
+	req.Header.Set("User-Agent", fmt.Sprintf("LexSelect-CLI/%s (%s/%s)", config.CLIVersion, runtime.GOOS, runtime.GOARCH))
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

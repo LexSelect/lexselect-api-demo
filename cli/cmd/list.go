@@ -38,8 +38,12 @@ func runList(cmd *cobra.Command, args []string) error {
 	itemType, _ := cmd.Flags().GetString("type")
 	parentID, _ := cmd.Flags().GetString("parent")
 	cursor, _ := cmd.Flags().GetString("cursor")
+	flat, _ := cmd.Flags().GetBool("flat")
 
 	query := fmt.Sprintf("?limit=%d", limit)
+	if flat {
+		query += "&flat=true"
+	}
 	if sortBy != "" {
 		query += "&sort_by=" + sortBy
 	}
