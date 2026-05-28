@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -38,7 +39,11 @@ func Load() *Config {
 }
 
 func loadDotEnv(cfg *Config) {
-	data, err := os.ReadFile(".env")
+	path := findDotEnv()
+	if path == "" {
+		return
+	}
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return
 	}
@@ -64,4 +69,26 @@ func loadDotEnv(cfg *Config) {
 			}
 		}
 	}
+}
+
+// findDotEnv looks for a .env file starting in the current working directory
+// and walking up to parent directories. This lets the CLI be run from a
+// subdirectory (e.g. cli/) while the .env lives at the repo root.
+func findDotEnv() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+	for i := 0; i < 6; i++ {
+		candidate := filepath.Join(dir, ".env")
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			return candidate
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	return ""
 }
