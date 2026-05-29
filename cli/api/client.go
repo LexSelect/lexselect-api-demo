@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -27,6 +28,20 @@ func (e *APIError) Error() string {
 		return fmt.Sprintf("%d %s: %s", e.StatusCode, e.Title, e.Detail)
 	}
 	return fmt.Sprintf("%d %s", e.StatusCode, e.Title)
+}
+
+func userAgent() string {
+	return fmt.Sprintf("LexSelect-CLI/%s (%s/%s)", config.CLIVersion, runtime.GOOS, runtime.GOARCH)
+}
+
+// apiErrorFrom builds an APIError from a status code and a parsed problem+json body.
+func apiErrorFrom(status int, body map[string]interface{}) *APIError {
+	e := &APIError{StatusCode: status, Body: body}
+	if body != nil {
+		e.Title, _ = body["title"].(string)
+		e.Detail, _ = body["detail"].(string)
+	}
+	return e
 }
 
 // Client wraps HTTP calls to the LexSelect API.
@@ -98,7 +113,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 	req.Header.Set("Authorization", "Bearer "+c.cfg.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-API-Version", c.cfg.APIVersion)
-	req.Header.Set("User-Agent", fmt.Sprintf("LexSelect-CLI/%s (%s/%s)", config.CLIVersion, runtime.GOOS, runtime.GOARCH))
+	req.Header.Set("User-Agent", userAgent())
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -124,27 +139,25 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 			retryAfter, _ = strconv.Atoi(ra)
 		}
 
-		apiErr := &APIError{
-			StatusCode: resp.StatusCode,
-			Body:       result,
-		}
-		if result != nil {
-			apiErr.Title, _ = result["title"].(string)
-			apiErr.Detail, _ = result["detail"].(string)
-		}
-		return nil, retryAfter, apiErr
+		return nil, retryAfter, apiErrorFrom(resp.StatusCode, result)
 	}
 
 	return result, 0, nil
 }
 
-// UploadToS3 uploads file bytes to a presigned S3 URL.
-func (c *Client) UploadToS3(ctx context.Context, uploadURL string, data []byte, contentType string) error {
+// UploadToS3 uploads file bytes to a presigned S3 URL. When sha256B64 is set
+// (base64-encoded SHA-256 of the bytes), it is sent as x-amz-checksum-sha256 so
+// S3 validates and stores the checksum — letting the API verify upload integrity
+// from object metadata instead of re-downloading the file.
+func (c *Client) UploadToS3(ctx context.Context, uploadURL string, data []byte, contentType, sha256B64 string) error {
 	req, err := http.NewRequestWithContext(ctx, "PUT", uploadURL, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("failed to create S3 request: %w", err)
 	}
 	req.Header.Set("Content-Type", contentType)
+	if sha256B64 != "" {
+		req.Header.Set("x-amz-checksum-sha256", sha256B64)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -156,4 +169,89 @@ func (c *Client) UploadToS3(ctx context.Context, uploadURL string, data []byte, 
 		return fmt.Errorf("S3 upload returned %d", resp.StatusCode)
 	}
 	return nil
+}
+
+// UploadMultipart performs the single-request upload (POST /documents/upload):
+// the server obtains the presigned URL, PUTs to S3, computes the hash, completes,
+// and triggers processing. The `name` field MUST be written before the file part —
+// the gateway parses the stream and needs the name before the file arrives.
+func (c *Client) UploadMultipart(ctx context.Context, name, parentID, contentType string, data []byte) (map[string]interface{}, error) {
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+	_ = w.WriteField("name", name)
+	if parentID != "" {
+		_ = w.WriteField("parent_id", parentID)
+	}
+	if contentType != "" {
+		_ = w.WriteField("content_type", contentType)
+	}
+	part, err := w.CreateFormFile("file", name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create form file: %w", err)
+	}
+	if _, err := part.Write(data); err != nil {
+		return nil, fmt.Errorf("failed to write file part: %w", err)
+	}
+	if err := w.Close(); err != nil {
+		return nil, fmt.Errorf("failed to finalize multipart body: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", c.cfg.APIURL+"/documents/upload", &buf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.cfg.APIKey)
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	req.Header.Set("X-API-Version", c.cfg.APIVersion)
+	req.Header.Set("User-Agent", userAgent())
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	var result map[string]interface{}
+	if len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			return nil, fmt.Errorf("failed to parse response: %w", err)
+		}
+	}
+	if resp.StatusCode >= 400 {
+		return nil, apiErrorFrom(resp.StatusCode, result)
+	}
+	return result, nil
+}
+
+// RequestRaw performs a GET and returns the raw response body plus its
+// Content-Type. Used for endpoints that return a non-JSON body (e.g. /render,
+// which returns Markdown or HTML).
+func (c *Client) RequestRaw(ctx context.Context, method, path string) ([]byte, string, error) {
+	req, err := http.NewRequestWithContext(ctx, method, c.cfg.APIURL+path, nil)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+c.cfg.APIKey)
+	req.Header.Set("X-API-Version", c.cfg.APIVersion)
+	req.Header.Set("User-Agent", userAgent())
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, "", fmt.Errorf("request failed: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to read response: %w", err)
+	}
+	if resp.StatusCode >= 400 {
+		var result map[string]interface{}
+		_ = json.Unmarshal(body, &result)
+		return nil, "", apiErrorFrom(resp.StatusCode, result)
+	}
+	return body, resp.Header.Get("Content-Type"), nil
 }

@@ -22,6 +22,7 @@ func init() {
 	listCmd.Flags().String("type", "", "Filter by type: file, folder, project")
 	listCmd.Flags().String("parent", "", "Parent folder ID")
 	listCmd.Flags().String("cursor", "", "Pagination cursor from previous response")
+	listCmd.Flags().Bool("flat", false, "Return a flat listing instead of one level of the tree")
 
 	rootCmd.AddCommand(listCmd)
 }
