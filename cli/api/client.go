@@ -145,32 +145,6 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 	return result, 0, nil
 }
 
-// UploadToS3 uploads file bytes to a presigned S3 URL. When sha256B64 is set
-// (base64-encoded SHA-256 of the bytes), it is sent as x-amz-checksum-sha256 so
-// S3 validates and stores the checksum — letting the API verify upload integrity
-// from object metadata instead of re-downloading the file.
-func (c *Client) UploadToS3(ctx context.Context, uploadURL string, data []byte, contentType, sha256B64 string) error {
-	req, err := http.NewRequestWithContext(ctx, "PUT", uploadURL, bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("failed to create S3 request: %w", err)
-	}
-	req.Header.Set("Content-Type", contentType)
-	if sha256B64 != "" {
-		req.Header.Set("x-amz-checksum-sha256", sha256B64)
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("S3 upload failed: %w", err)
-	}
-	resp.Body.Close()
-
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("S3 upload returned %d", resp.StatusCode)
-	}
-	return nil
-}
-
 // UploadMultipart performs the single-request upload (POST /documents/upload):
 // the server obtains the presigned URL, PUTs to S3, computes the hash, completes,
 // and triggers processing. The `name` field MUST be written before the file part —

@@ -1,18 +1,13 @@
 /**
  * LexSelect API — Upload & Poll Example
  *
- * Uploads a PDF document via the 3-step flow, waits for processing, then prints
- * the parsed result. Uses only the built-in `fetch` API (Node.js 18+).
+ * Uploads a document via a single multipart request (POST /documents/upload),
+ * waits for processing, then prints the parsed result. Uses only the built-in
+ * `fetch`/`FormData` APIs (Node.js 18+).
  *
  * Usage:
  *   LEXSELECT_API_KEY=lxs_... npx tsx upload-and-poll.ts ./contract.pdf
- *
- * Local dev note: when pointing LEXSELECT_API_URL at a local stack whose S3
- * (LocalStack) serves a self-signed cert, Node's fetch rejects the presigned
- * PUT. Run with NODE_TLS_REJECT_UNAUTHORIZED=0 for local testing only.
  */
-
-import { createHash } from "node:crypto";
 
 const API_KEY = process.env.LEXSELECT_API_KEY;
 const API_URL = process.env.LEXSELECT_API_URL || "https://api.lexselect.io/api";
@@ -34,9 +29,8 @@ const headers = {
   "X-API-Version": "2026-03-06",
 };
 
-// Map file extensions to the MIME type the presigned URL is signed for. The S3
-// PUT Content-Type MUST match the type inferred at create time (step 1), or S3
-// rejects the upload with SignatureDoesNotMatch.
+// Map file extensions to the MIME type used for the uploaded file part. The
+// server also infers the type from the file name when this is omitted.
 const CONTENT_TYPES: Record<string, string> = {
   pdf: "application/pdf",
   doc: "application/msword",
@@ -74,48 +68,40 @@ async function main() {
   const fileName = path.basename(filePath);
   const fileData = fs.readFileSync(filePath);
 
-  // SHA-256 of the file: hex for the completion call, base64 for the S3
-  // checksum header so the server verifies integrity without re-downloading.
-  const digest = createHash("sha256").update(fileData).digest();
-  const hashHex = digest.toString("hex");
-  const hashB64 = digest.toString("base64");
-
   console.log(`Uploading ${fileName} (${fileData.length} bytes)...`);
 
-  // Step 1: Create upload session
-  const createResp = await api("POST", "/documents", {
-    name: fileName,
-    size: fileData.length,
-  });
+  // Single-request multipart upload (POST /documents/upload): the server stores
+  // the bytes, verifies the hash, and triggers processing — one round-trip.
+  const form = new FormData();
+  form.append("name", fileName);
+  form.append("size", String(fileData.length));
+  form.append(
+    "file",
+    new Blob([fileData], { type: contentTypeFor(fileName) }),
+    fileName
+  );
 
-  const docId = createResp.id;
-  console.log(`Document created: ${docId}`);
-
-  // Step 2: Upload to S3 — Content-Type must match the inferred type, and the
-  // optional x-amz-checksum-sha256 lets the server verify integrity via metadata.
-  const s3Resp = await fetch(createResp.upload_url, {
-    method: "PUT",
-    body: fileData,
+  // No Content-Type header — fetch sets the multipart boundary automatically.
+  const uploadResp = await fetch(`${API_URL}/documents/upload`, {
+    method: "POST",
     headers: {
-      "Content-Type": contentTypeFor(fileName),
-      "x-amz-checksum-sha256": hashB64,
+      Authorization: `Bearer ${API_KEY}`,
+      "X-API-Version": "2026-03-06",
     },
+    body: form,
   });
 
-  if (!s3Resp.ok) throw new Error(`S3 upload failed: ${s3Resp.status}`);
-  console.log("File uploaded to S3");
+  const uploadData = await uploadResp.json();
+  if (!uploadResp.ok) {
+    throw new Error(
+      `${uploadResp.status}: ${uploadData.detail || JSON.stringify(uploadData)}`
+    );
+  }
 
-  // Step 3: Complete upload — content_hash_sha256 (hex) is required and is
-  // verified against the uploaded bytes.
-  const updateResp = await api("PUT", `/documents/${docId}`, {
-    status: "uploaded",
-    content_hash_sha256: hashHex,
-  });
-
-  const realDocId = updateResp.id;
+  const realDocId = uploadData.id;
   console.log(`Upload complete. Document ID: ${realDocId}`);
 
-  // Step 4: Poll processing status
+  // Poll processing status
   process.stdout.write("Processing");
   for (let i = 0; i < 120; i++) {
     await new Promise((r) => setTimeout(r, 3000));
