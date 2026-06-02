@@ -34,8 +34,7 @@ error output.
 
 | Command | Endpoint(s) | Description |
 |---------|-------------|-------------|
-| `upload <file>` | `POST /documents` → S3 PUT → `PUT /documents/{id}` | Upload a file (3-step), wait for processing, print the result |
-| `upload <file> --single-request` | `POST /documents/upload` | Upload via one multipart request (server runs all steps) |
+| `upload <file>` | `POST /documents/upload` | Upload a file (one multipart request), wait for processing, print the result |
 | `list` | `GET /documents` | List documents and folders |
 | `get <id>` | `GET /documents/{id}` | Show a document's metadata |
 | `delete <id>` | `DELETE /documents/{id}` | Soft-delete a document or folder |
@@ -52,7 +51,6 @@ Add `--json` to any command for raw JSON output.
 ```bash
 # Upload and wait for processing
 ./lexselect upload contract.pdf
-./lexselect upload contract.pdf --single-request
 
 # List (all flags)
 ./lexselect list --limit 10 --sort created_at --dir desc --type file
@@ -87,10 +85,3 @@ Add `--json` to any command for raw JSON output.
 
 API errors are surfaced as `<status> <title>: <detail>` (from the RFC 9457
 `application/problem+json` body). Rate-limit responses (`429`) are retried up to 3 times.
-
-## Local development
-
-Against a local stack whose S3 (LocalStack) uses a self-signed certificate, the
-3-step flow's direct S3 `PUT` may fail TLS verification from the CLI. Use
-`--single-request` (the server performs the S3 upload) or point at a stack with a
-trusted certificate.
