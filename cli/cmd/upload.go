@@ -52,6 +52,9 @@ func runUpload(ctx context.Context, filePath string) error {
 		return fmt.Errorf("upload failed: %w", err)
 	}
 	realDocID, _ := doc["id"].(string)
+	if realDocID == "" {
+		return fmt.Errorf("upload response did not include a document id: %v", doc)
+	}
 	fmt.Printf("Upload complete. Document ID: %s\n", realDocID)
 
 	// Poll processing

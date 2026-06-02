@@ -147,12 +147,15 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body interf
 
 // UploadMultipart performs the single-request upload (POST /documents/upload):
 // the server obtains the presigned URL, PUTs to S3, computes the hash, completes,
-// and triggers processing. The `name` field MUST be written before the file part —
-// the gateway parses the stream and needs the name before the file arrives.
+// and triggers processing. The `name` and `size` fields are required by the
+// contract and MUST be written before the file part — the gateway parses the
+// stream and needs them before the file arrives. `size` must equal the file's
+// exact byte count or the server rejects the upload.
 func (c *Client) UploadMultipart(ctx context.Context, name, parentID, contentType string, data []byte) (map[string]interface{}, error) {
 	var buf bytes.Buffer
 	w := multipart.NewWriter(&buf)
 	_ = w.WriteField("name", name)
+	_ = w.WriteField("size", strconv.Itoa(len(data)))
 	if parentID != "" {
 		_ = w.WriteField("parent_id", parentID)
 	}
