@@ -30,11 +30,21 @@ func init() {
 				return nil
 			}
 
+			pagesDone, _ := resp["pages_done"].(float64)
+			pagesTotal, _ := resp["pages_total"].(float64)
+			totalKnown, _ := resp["total_known"].(bool)
+			// When the total is not final yet, mark it with "+" — the total
+			// may still grow, so never present it as a finished fraction.
+			pages := fmt.Sprintf("%d/%d", int(pagesDone), int(pagesTotal))
+			if !totalKnown {
+				pages += "+ (total not final)"
+			}
+
 			pairs := [][2]string{
 				{"Document", fmt.Sprintf("%v", resp["document_name"])},
 				{"Status", fmt.Sprintf("%v", resp["status"])},
-				{"Progress", fmt.Sprintf("%v", resp["processing_progress"])},
-				{"Pages", fmt.Sprintf("%v", resp["page_count"])},
+				{"Stage", fmt.Sprintf("%v", resp["stage"])},
+				{"Pages", pages},
 				{"Preview", fmt.Sprintf("%v", resp["preview_available"])},
 				{"Engine", fmt.Sprintf("v%v", resp["engine_version"])},
 			}

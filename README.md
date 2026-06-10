@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Go 1.24+](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go&logoColor=white)](cli/)
-[![API Version](https://img.shields.io/badge/API%20Version-2026--03--06-green)](https://api.lexselect.io/api/docs)
+[![API Version](https://img.shields.io/badge/API%20Version-2026--06--07-green)](https://api.lexselect.io/api/docs)
 
 CLI tool and code examples for the [LexSelect External API](https://api.lexselect.io/api/docs).
 
@@ -37,6 +37,30 @@ reference: the [API docs](https://api.lexselect.io/api/docs).
 | `GET` | `/documents/{id}/processing/latest/pages` | List page metadata | `pages` |
 | `GET` | `/documents/{id}/parse` | Get the parsed structure (tree, kvps, text, tables, blocks) | `parse` |
 | `GET` | `/documents/{id}/render` | Render to Markdown/HTML (experimental) | `render` |
+
+### Processing status (polling)
+
+On the latest API version (`2026-06-07`), `GET /documents/{id}/processing/latest`
+reports progress as facts — counts per scope — instead of a computed fraction:
+
+```json
+{
+  "status": "in_progress",
+  "stage": "page-processing",
+  "pages_done": 7,
+  "pages_total": 12,
+  "total_known": true,
+  "progress_details": [
+    {"scope": "page", "kind": "page", "done": 7, "total": 12, "total_known": true}
+  ]
+}
+```
+
+When `total_known` is `false`, the total may still grow — render counts honestly
+(e.g. `7/12+`) and do not derive a percentage. Pinning `X-API-Version: 2026-03-06`
+keeps the legacy shape (`processing_progress` float + `page_count`). Note that the
+`/parse` endpoint's `page_count`/`total_pages` are response-batch metadata and are
+unchanged across versions.
 
 ## Upload flow
 
