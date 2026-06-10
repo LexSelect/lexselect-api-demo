@@ -101,11 +101,9 @@ async function main() {
   const realDocId = uploadData.id;
   console.log(`Upload complete. Document ID: ${realDocId}`);
 
-  // Poll processing status
-  process.stdout.write("Processing");
+  // Poll processing status — a single status line rewritten in place.
   for (let i = 0; i < 120; i++) {
     await new Promise((r) => setTimeout(r, 3000));
-    process.stdout.write(".");
 
     try {
       const proc = await api("GET", `/documents/${realDocId}/processing/latest`);
@@ -126,15 +124,18 @@ async function main() {
         throw new Error(`Processing failed: ${proc.error_message}`);
       }
 
-      // Show honest progress: when total_known is false the total may still
-      // grow, so render "done/total+" instead of a percentage.
+      // Show honest progress, rewriting the same line in place (\r): when
+      // total_known is false the total may still grow, so render
+      // "done/total+" instead of a percentage. Trailing spaces clear any
+      // leftover characters from a longer previous render.
       const suffix = proc.total_known ? "" : "+";
       process.stdout.write(
-        ` [${proc.stage} ${proc.pages_done}/${proc.pages_total}${suffix}]`
+        `\rProcessing [${proc.stage} ${proc.pages_done}/${proc.pages_total}${suffix}]   `
       );
     } catch (e: any) {
       if (!e.message.includes("404")) throw e;
       // Not started yet, keep polling
+      process.stdout.write("\rProcessing (waiting for first status)...   ");
     }
   }
 
