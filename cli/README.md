@@ -46,6 +46,22 @@ error output.
 
 Add `--json` to any command for raw JSON output.
 
+### Processing status fields
+
+`status` (and the polling loop in `upload`) read the latest API version
+(`2026-06-07`), where progress is reported as facts rather than a fraction:
+`stage` (e.g. `preparing`, `page-processing`, `done`), `pages_done`,
+`pages_total`, `total_known`, and a per-scope `progress_details` array:
+
+```json
+{"stage": "page-processing", "pages_done": 7, "pages_total": 12, "total_known": true, "progress_details": [{"scope": "page", "kind": "page", "done": 7, "total": 12, "total_known": true}]}
+```
+
+When `total_known` is `false` the total may still grow, so the CLI shows
+`7/12+ (total not final)` instead of a percentage. Pinning
+`X-API-Version: 2026-03-06` keeps the legacy `processing_progress` +
+`page_count` shape.
+
 ### Examples
 
 ```bash

@@ -78,8 +78,8 @@ func runUpload(ctx context.Context, filePath string) error {
 
 		switch procResp["status"] {
 		case "completed":
-			pageCount, _ := procResp["page_count"].(float64)
-			fmt.Printf("\nDone! Pages: %d\n", int(pageCount))
+			pagesTotal, _ := procResp["pages_total"].(float64)
+			fmt.Printf("\nDone! Pages: %d\n", int(pagesTotal))
 			if cfg.JSONOutput {
 				output.JSON(procResp)
 			}

@@ -26,7 +26,7 @@ if (!filePath) {
 const headers = {
   Authorization: `Bearer ${API_KEY}`,
   "Content-Type": "application/json",
-  "X-API-Version": "2026-03-06",
+  "X-API-Version": "2026-06-07",
 };
 
 // Map file extensions to the MIME type used for the uploaded file part. The
@@ -86,7 +86,7 @@ async function main() {
     method: "POST",
     headers: {
       Authorization: `Bearer ${API_KEY}`,
-      "X-API-Version": "2026-03-06",
+      "X-API-Version": "2026-06-07",
     },
     body: form,
   });
@@ -111,7 +111,7 @@ async function main() {
       const proc = await api("GET", `/documents/${realDocId}/processing/latest`);
 
       if (proc.status === "completed") {
-        console.log(`\nDone! Pages: ${proc.page_count}`);
+        console.log(`\nDone! Pages: ${proc.pages_total}`);
 
         // Fetch the parsed structure (the actual product value).
         const parsed = await api("GET", `/documents/${realDocId}/parse`);
@@ -125,6 +125,13 @@ async function main() {
         console.log();
         throw new Error(`Processing failed: ${proc.error_message}`);
       }
+
+      // Show honest progress: when total_known is false the total may still
+      // grow, so render "done/total+" instead of a percentage.
+      const suffix = proc.total_known ? "" : "+";
+      process.stdout.write(
+        ` [${proc.stage} ${proc.pages_done}/${proc.pages_total}${suffix}]`
+      );
     } catch (e: any) {
       if (!e.message.includes("404")) throw e;
       // Not started yet, keep polling
