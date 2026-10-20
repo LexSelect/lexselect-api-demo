@@ -34,10 +34,10 @@ error output.
 
 | Command | Endpoint(s) | Description |
 |---------|-------------|-------------|
-| `upload <file>` | `POST /documents/upload` | Upload a file (one multipart request), wait for processing, print the result |
+| `upload <file>` | `POST /documents/upload` | Upload a file (one multipart request), wait for processing, print status |
 | `list` | `GET /documents` | List documents and folders |
 | `get <id>` | `GET /documents/{id}` | Show a document's metadata |
-| `delete <id>` | `DELETE /documents/{id}` | Soft-delete a document or folder |
+| `delete <id>` | `DELETE /documents/{id}` | Queue permanent deletion of a document or folder |
 | `status <id>` | `GET /documents/{id}/processing/latest` | Show processing status |
 | `pages <id>` | `GET /documents/{id}/processing/latest/pages` | List page metadata |
 | `parse <id>` | `GET /documents/{id}/parse` | Show the parsed structure (use `--json` for the full tree) |
@@ -48,8 +48,8 @@ Add `--json` to any command for raw JSON output.
 
 ### Processing status fields
 
-`status` (and the polling loop in `upload`) read the latest API version
-(`2026-06-07`), where progress is reported as facts rather than a fraction:
+`status` (and the polling loop in `upload`) target API version
+(`2026-09-12`), where progress is reported as facts rather than a fraction:
 `stage` (e.g. `preparing`, `page-processing`, `done`), `pages_done`,
 `pages_total`, `total_known`, and a per-scope `progress_details` array:
 
