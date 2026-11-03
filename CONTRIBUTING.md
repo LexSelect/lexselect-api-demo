@@ -18,10 +18,8 @@ go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
 ```bash
 cd examples/python
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-jupyter notebook
+uv sync               # installs the versions in uv.lock
+uv run jupyter notebook
 ```
 
 ### TypeScript Examples

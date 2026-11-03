@@ -120,6 +120,9 @@ Each example installs the exact versions in its lockfile:
 ```bash
 cd examples/typescript && npm ci   # Node.js 22+
 npx tsx upload-and-poll.ts ./contract.pdf   # reads LEXSELECT_API_KEY from the environment
+
+cd examples/python && uv sync      # https://docs.astral.sh/uv/
+uv run jupyter notebook sync-polling.ipynb
 ```
 
 ## Configuration

@@ -1,9 +1,20 @@
 [project]
 name = "lexselect-api-examples"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
-    "httpx>=0.27",
-    "jupyter>=1.0",
-    "python-dotenv>=1.0",
+    "httpx>=0.28",
+    "jupyter>=1.1",
+    # 1.2.2 fixes GHSA-mf9w-mj56-hr94 (set_key symlink following).
+    "python-dotenv>=1.2.2",
 ]
+
+[tool.uv]
+# uv.lock holds only releases at least 14 days old when adopted
+# (2026-11-03). Move this date forward when updating the lock.
+exclude-newer = "2026-10-20T23:59:59Z"
+# Exception: Jupyter's server runs on tornado, and 6.6 (2026-10-21) is the
+# first release fixing GHSA-pcg2-g6cj-q92c, GHSA-pw9p-v7r6-gx4p and
+# GHSA-r4j5-9xpp-3985.
+exclude-newer-package = { tornado = "2026-10-21T23:59:59Z" }
+constraint-dependencies = ["tornado>=6.6"]
