@@ -1,7 +1,7 @@
 # LexSelect API Demo
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Go 1.24+](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go&logoColor=white)](cli/)
+[![Go 1.26.10+](https://img.shields.io/badge/Go-1.26.10+-00ADD8?logo=go&logoColor=white)](cli/)
 [![API Version](https://img.shields.io/badge/API%20Version-2026--09--12-green)](https://api.lexselect.io/api/docs)
 
 CLI tool and code examples for the [LexSelect External API](https://api.lexselect.io/api/docs), targeting the `2026-09-12` response contract. Confirm that the selected server supports a version before using it.
