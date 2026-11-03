@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+# Actions are pinned to the commit of the release named in the comment.
+
 jobs:
   go:
     name: Go CLI
@@ -14,21 +19,30 @@ jobs:
       run:
         working-directory: cli
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.24'
+          go-version-file: cli/go.mod
+          cache-dependency-path: cli/go.sum
 
       - name: Vet
         run: go vet ./...
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
+          version: v2.15.0
           working-directory: cli
 
       - name: Build
         run: go build -o lexselect .
+
+      - name: Test
+        run: go test ./...
+
+      # Exits non-zero when the code calls a known-vulnerable function.
+      - name: Vulnerability check
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 
       - name: Smoke test
         run: ./lexselect version
@@ -40,16 +54,16 @@ jobs:
       run:
         working-directory: examples/typescript
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
 
       - name: Install
-        run: npm install
+        run: npm ci
 
       - name: Type check
-        run: npx tsc --noEmit upload-and-poll.ts || true
+        run: npm run typecheck
 
   python:
     name: Python Notebook
@@ -58,13 +72,14 @@ jobs:
       run:
         working-directory: examples/python
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
-          python-version: '3.13'
+          version: '0.13.4'
 
+      # --locked fails if uv.lock is out of date with pyproject.toml.
       - name: Install
-        run: pip install httpx jupyter python-dotenv
+        run: uv sync --locked
 
       - name: Validate notebook
-        run: python -c "import json; json.load(open('sync-polling.ipynb'))"
+        run: uv run --locked python -c "import json; json.load(open('sync-polling.ipynb'))"
