@@ -115,6 +115,13 @@ Minimal, self-contained examples for learning the API.
 | [upload-and-poll.ts](examples/typescript/upload-and-poll.ts) | TypeScript | Single file: upload → poll → fetch the parsed result |
 | [sync-polling.ipynb](examples/python/sync-polling.ipynb) | Python | Notebook: upload → poll → pages → parse → render |
 
+Each example installs the exact versions in its lockfile:
+
+```bash
+cd examples/typescript && npm ci   # Node.js 22+
+npx tsx upload-and-poll.ts ./contract.pdf   # reads LEXSELECT_API_KEY from the environment
+```
+
 ## Configuration
 
 | Variable / Flag | Description | Default |

@@ -28,7 +28,8 @@ jupyter notebook
 
 ```bash
 cd examples/typescript
-npm install
+npm ci                # installs the versions in package-lock.json
+npm run typecheck
 npx tsx upload-and-poll.ts <file.pdf>
 ```
 
