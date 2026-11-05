@@ -30,21 +30,11 @@ func init() {
 				return nil
 			}
 
-			pagesDone, _ := resp["pages_done"].(float64)
-			pagesTotal, _ := resp["pages_total"].(float64)
-			totalKnown, _ := resp["total_known"].(bool)
-			// When the total is not final yet, mark it with "+" — the total
-			// may still grow, so never present it as a finished fraction.
-			pages := fmt.Sprintf("%d/%d", int(pagesDone), int(pagesTotal))
-			if !totalKnown {
-				pages += "+ (total not final)"
-			}
-
 			pairs := [][2]string{
 				{"Document", fmt.Sprintf("%v", resp["document_name"])},
 				{"Status", fmt.Sprintf("%v", resp["status"])},
 				{"Stage", fmt.Sprintf("%v", resp["stage"])},
-				{"Pages", pages},
+				{"Pages", formatPages(resp)},
 				{"Preview", fmt.Sprintf("%v", resp["preview_available"])},
 				{"Engine", fmt.Sprintf("v%v", resp["engine_version"])},
 			}
@@ -55,4 +45,18 @@ func init() {
 			return nil
 		},
 	})
+}
+
+// formatPages renders the facts-only progress of /processing/latest as
+// "done/total". When `total_known` is false the total may still grow, so it is
+// marked with "+" and never presented as a finished fraction.
+func formatPages(resp map[string]interface{}) string {
+	pagesDone, _ := resp["pages_done"].(float64)
+	pagesTotal, _ := resp["pages_total"].(float64)
+	totalKnown, _ := resp["total_known"].(bool)
+	pages := fmt.Sprintf("%d/%d", int(pagesDone), int(pagesTotal))
+	if !totalKnown {
+		pages += "+ (total not final)"
+	}
+	return pages
 }

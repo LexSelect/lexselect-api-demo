@@ -8,7 +8,7 @@ import (
 
 const (
 	DefaultAPIURL = "https://api.lexselect.io/api"
-	APIVersion    = "2026-09-12"
+	APIVersion    = "2026-10-20"
 	CLIVersion    = "0.1.0"
 )
 

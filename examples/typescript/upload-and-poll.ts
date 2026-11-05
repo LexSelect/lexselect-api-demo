@@ -11,6 +11,9 @@
 
 const API_KEY = process.env.LEXSELECT_API_KEY;
 const API_URL = process.env.LEXSELECT_API_URL || "https://api.lexselect.io/api";
+// The response contract this example is written against; send it on every
+// request so a newer server default never changes the shapes read below.
+const API_VERSION = "2026-10-20";
 
 if (!API_KEY) {
   console.error("Set LEXSELECT_API_KEY environment variable");
@@ -28,7 +31,7 @@ if (!filePath) {
 const headers = {
   Authorization: `Bearer ${API_KEY}`,
   "Content-Type": "application/json",
-  "X-API-Version": "2026-09-12",
+  "X-API-Version": API_VERSION,
 };
 
 // Map file extensions to the MIME type used for the uploaded file part. The
@@ -117,6 +120,28 @@ async function api(path: string, deadline: number) {
 }
 
 /** Upload once, poll within a deadline and fetch the resulting parse. */
+type ParseNode = {
+  meta?: { styling?: { struck_tokens?: { index: number; text: string }[] } };
+  content?: ParseNode[];
+};
+
+/**
+ * Collects the struck-through words of a /parse response in reading order.
+ * From API version 2026-10-20 every line lists its struck words in
+ * `meta.styling.struck_tokens`, even without `tokens=true`; struck text still
+ * appears in `value.text`, so a client uses this list to drop or flag it.
+ */
+function struckWords(parsed: { pages?: { tree?: ParseNode | null }[] }): string[] {
+  const words: string[] = [];
+  const walk = (node: ParseNode | null | undefined): void => {
+    if (!node) return;
+    for (const mark of node.meta?.styling?.struck_tokens ?? []) words.push(mark.text);
+    for (const child of node.content ?? []) walk(child);
+  };
+  for (const page of parsed.pages ?? []) walk(page.tree);
+  return words;
+}
+
 async function main() {
   const fs = await import("fs");
   const path = await import("path");
@@ -142,7 +167,7 @@ async function main() {
     method: "POST",
     headers: {
       Authorization: `Bearer ${API_KEY}`,
-      "X-API-Version": "2026-09-12",
+      "X-API-Version": API_VERSION,
     },
     body: form,
     signal: AbortSignal.timeout(120_000),
@@ -185,6 +210,12 @@ async function main() {
           parsed.total_pages +
           " pages, type=" +
           parsed.document_type,
+      );
+      const struck = struckWords(parsed);
+      console.log(
+        "Struck-through words: " +
+          struck.length +
+          (struck.length ? " (" + struck.slice(0, 10).join(", ") + ")" : ""),
       );
       return;
     }

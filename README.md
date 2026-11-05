@@ -2,9 +2,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Go 1.24+](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go&logoColor=white)](cli/)
-[![API Version](https://img.shields.io/badge/API%20Version-2026--09--12-green)](https://api.lexselect.io/api/docs)
+[![API Version](https://img.shields.io/badge/API%20Version-2026--10--20-green)](https://api.lexselect.io/api/docs)
 
-CLI tool and code examples for the [LexSelect External API](https://api.lexselect.io/api/docs), targeting the `2026-09-12` response contract. Confirm that the selected server supports a version before using it.
+CLI tool and code examples for the [LexSelect External API](https://api.lexselect.io/api/docs), targeting the `2026-10-20` response contract. Confirm that the selected server supports a version before using it.
 
 > **Server-to-server API.** Keys (prefixed `lxs_`) must not be embedded in browser
 > applications. The gateway answers preflights before authentication and permits
@@ -42,7 +42,7 @@ reference: the [API docs](https://api.lexselect.io/api/docs).
 
 ### Processing status (polling)
 
-For the `2026-09-12` API contract, `GET /documents/{id}/processing/latest`
+From API version `2026-06-07`, `GET /documents/{id}/processing/latest`
 reports progress as facts — counts per scope — instead of a computed fraction:
 
 ```json
@@ -70,6 +70,17 @@ processing run. `unknown` can represent an unmapped state such as paused/cancell
 work; it is not success. Use bounded polling with a client deadline, backoff and
 jitter, and respect `Retry-After` when supplied. For many documents, use signed
 webhooks and durably save results before automatic retention deletes them.
+
+### Struck-through and underlined words
+
+From API version `2026-10-20`, `/parse` reports line marks. Every line lists its
+struck-through and underlined words in `meta.styling.struck_tokens` and
+`meta.styling.underlined_tokens` as `{index, text}`, where `index` is the word's
+zero-based position in the line's word sequence. The lists are present with or
+without `tokens=true`; with it, each `token` node also carries
+`meta.styling.strikethrough` / `underline`. Struck-through words stay in
+`value.text`, so a client uses these lists to drop or flag them. The CLI's
+`parse` summary and both examples print the struck-through words.
 
 ## Upload flow
 
