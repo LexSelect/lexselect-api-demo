@@ -117,11 +117,17 @@ Minimal, self-contained examples for learning the API.
 
 Each example installs the exact versions in its lockfile:
 
-```bash
-cd examples/typescript && npm ci   # Node.js 22+
-npx tsx upload-and-poll.ts ./contract.pdf   # reads LEXSELECT_API_KEY from the environment
+TypeScript (Node.js 22+), from the repository root:
 
-cd examples/python && uv sync      # https://docs.astral.sh/uv/
+```bash
+cd examples/typescript && npm ci
+npx tsx upload-and-poll.ts ./contract.pdf   # reads LEXSELECT_API_KEY from the environment
+```
+
+Python ([uv](https://docs.astral.sh/uv/)), from the repository root:
+
+```bash
+cd examples/python && uv sync
 uv run jupyter notebook sync-polling.ipynb
 ```
 
