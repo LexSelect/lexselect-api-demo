@@ -3,9 +3,10 @@
  *
  * Uploads a document via a single multipart request (POST /documents/upload),
  * waits for processing, then prints the parsed result. Uses only the built-in
- * `fetch`/`FormData` APIs (Node.js 18+).
+ * `fetch`/`FormData` APIs (Node.js 22+).
  *
  * Usage:
+ *   npm ci
  *   LEXSELECT_API_KEY=lxs_... npx tsx upload-and-poll.ts ./contract.pdf
  */
 

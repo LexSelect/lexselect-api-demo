@@ -10,23 +10,24 @@ Thanks for your interest in contributing!
 cd cli
 go build -o lexselect .
 go vet ./...
+golangci-lint run
+go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 ```
 
 ### Python Examples
 
 ```bash
 cd examples/python
-python -m venv .venv
-source .venv/bin/activate
-pip install -e .
-jupyter notebook
+uv sync               # installs the versions in uv.lock
+uv run jupyter notebook
 ```
 
 ### TypeScript Examples
 
 ```bash
 cd examples/typescript
-npm install
+npm ci                # installs the versions in package-lock.json
+npm run typecheck
 npx tsx upload-and-poll.ts <file.pdf>
 ```
 
@@ -34,5 +35,5 @@ npx tsx upload-and-poll.ts <file.pdf>
 
 1. Fork the repo and create a branch
 2. Make your changes
-3. Ensure `go vet` and `go build` pass
+3. Ensure `go vet`, `go build`, `golangci-lint` and `govulncheck` pass
 4. Open a PR with a clear description

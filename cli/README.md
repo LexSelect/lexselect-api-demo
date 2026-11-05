@@ -4,6 +4,9 @@ Command-line tool for the LexSelect External API. Single binary, no runtime depe
 
 ## Install
 
+Requires Go 1.26.10 or newer. An older Go downloads that toolchain
+automatically (unless `GOTOOLCHAIN=local` is set).
+
 ```bash
 go build -o lexselect .
 ```

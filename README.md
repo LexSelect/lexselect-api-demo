@@ -1,7 +1,7 @@
 # LexSelect API Demo
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Go 1.24+](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go&logoColor=white)](cli/)
+[![Go 1.26.10+](https://img.shields.io/badge/Go-1.26.10+-00ADD8?logo=go&logoColor=white)](cli/)
 [![API Version](https://img.shields.io/badge/API%20Version-2026--09--12-green)](https://api.lexselect.io/api/docs)
 
 CLI tool and code examples for the [LexSelect External API](https://api.lexselect.io/api/docs), targeting the `2026-09-12` response contract. Confirm that the selected server supports a version before using it.
@@ -114,6 +114,22 @@ Minimal, self-contained examples for learning the API.
 |---------|----------|-------------|
 | [upload-and-poll.ts](examples/typescript/upload-and-poll.ts) | TypeScript | Single file: upload → poll → fetch the parsed result |
 | [sync-polling.ipynb](examples/python/sync-polling.ipynb) | Python | Notebook: upload → poll → pages → parse → render |
+
+Each example installs the exact versions in its lockfile:
+
+TypeScript (Node.js 22+), from the repository root:
+
+```bash
+cd examples/typescript && npm ci
+npx tsx upload-and-poll.ts ./contract.pdf   # reads LEXSELECT_API_KEY from the environment
+```
+
+Python ([uv](https://docs.astral.sh/uv/)), from the repository root:
+
+```bash
+cd examples/python && uv sync
+uv run jupyter notebook sync-polling.ipynb
+```
 
 ## Configuration
 

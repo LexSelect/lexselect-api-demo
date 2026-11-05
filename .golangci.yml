@@ -1,14 +1,14 @@
+version: "2"
+
 run:
   timeout: 2m
 
 linters:
-  enable:
-    - errcheck
-    - govet
-    - staticcheck
-    - unused
-    - ineffassign
-    - gosimple
-
-issues:
-  exclude-use-default: true
+  # errcheck, govet, ineffassign, staticcheck (now including gosimple), unused.
+  default: standard
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
