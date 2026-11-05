@@ -48,8 +48,8 @@ Add `--json` to any command for raw JSON output.
 
 ### Processing status fields
 
-`status` (and the polling loop in `upload`) target API version
-(`2026-09-12`), where progress is reported as facts rather than a fraction:
+The CLI sends `X-API-Version: 2026-10-20` on every request. `status` (and the
+polling loop in `upload`) read progress as facts rather than a fraction:
 `stage` (e.g. `preparing`, `page-processing`, `done`), `pages_done`,
 `pages_total`, `total_known`, and a per-scope `progress_details` array:
 
@@ -61,6 +61,15 @@ When `total_known` is `false` the total may still grow, so the CLI shows
 `7/12+ (total not final)` instead of a percentage. Pinning
 `X-API-Version: 2026-03-06` keeps the legacy `processing_progress` +
 `page_count` shape.
+
+### Parse summary
+
+Without `--json`, `parse` prints the document's status and page counts, its
+detected language and direction, whether it is a line-numbered transcript, and
+its struck-through and underlined words (the first 10 of each, with their page),
+read from the lines' `meta.styling.struck_tokens` / `underlined_tokens`.
+`--tokens` adds a `token` node per word, with its coordinates and
+`meta.styling`, to the tree.
 
 ### Examples
 
@@ -77,6 +86,7 @@ When `total_known` is `false` the total may still grow, so the CLI shows
 ./lexselect pages <id>
 ./lexselect parse <id> --include tree,kvps --pages 1-5
 ./lexselect parse <id> --json
+./lexselect parse <id> --include tree --tokens --json   # word nodes with their styling
 ./lexselect render <id> --format markdown
 ./lexselect render <id> --format html --pages 1
 
